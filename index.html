@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AVAS-223 Bandwidth Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>(function(){const t=localStorage.getItem('avas223-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --accent:      #3b82f6;
+  --accent-glow: rgba(59,130,246,.18);
+  --accent-dl:   #8b5cf6;
+  --adv-red:     #0f0bc0;
+  --green:       #22c55e;
+  --green-bg:    rgba(34,197,94,.1);
+  --yellow:      #f59e0b;
+  --yellow-bg:   rgba(245,158,11,.1);
+  --orange:      #f97316;
+  --red:         #ef4444;
+  --red-bg:      rgba(239,68,68,.1);
+
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --surface3:    #21262d;
+  --border:      #30363d;
+  --border2:     #3d444d;
+
+  --text:        #e6edf3;
+  --text-mid:    #8b949e;
+  --text-dim:    #484f58;
+
+  --s0-col:    #3b82f6;
+  --s1-col:    #8b5cf6;
+  --aux-col:   #06b6d4;
+  --ha-col:    #10b981;
+  --qi2s-col:  #14b8a6;
+  --si2s-col:  #34d399;
+  --rs-col:    #f59e0b;
+  --ir-col:    #f97316;
+  --ct-col:    #6b7280;
+
+  --rad:     10px;
+  --rads:    6px;
+  --shadow:  0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+}
+[data-theme="light"] {
+  --bg:        #f0f2f7;
+  --surface:   #ffffff;
+  --surface2:  #f6f8fc;
+  --surface3:  #edf0f7;
+  --border:    #d0d7e3;
+  --border2:   #bac3d4;
+  --accent:    #2563eb;
+  --accent-glow: rgba(37,99,235,.12);
+  --accent-dl:   #7c3aed;
+  --green:     #16a34a;
+  --green-bg:  rgba(22,163,74,.08);
+  --yellow:    #b45309;
+  --yellow-bg: rgba(180,83,9,.08);
+  --red:       #dc2626;
+  --red-bg:    rgba(220,38,38,.08);
+  --text:      #1e293b;
+  --text-mid:  #64748b;
+  --text-dim:  #94a3b8;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+}
+
+/* ═══════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
+  font-size:13px;line-height:1.5;
+  display:flex;flex-direction:column;
+}
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:52px;flex-shrink:0;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  z-index:100;gap:16px;
+}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.adv-badge{
+  background:var(--adv-red);color:#fff;font-size:10px;font-weight:800;
+  padding:3px 7px;border-radius:3px;letter-spacing:.6px;flex-shrink:0;
+}
+.hdr-divider{width:1px;height:22px;background:var(--border2);}
+.hdr-title{font-size:15px;font-weight:700;letter-spacing:-.3px;}
+.hdr-title b{color:var(--accent);}
+.hdr-sub{font-size:11px;color:var(--text-mid);margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.hdr-pill{
+  font-size:11px;color:var(--text-dim);
+  padding:3px 9px;border:1px solid var(--border);border-radius:20px;
+}
+.theme-btn{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text-mid);cursor:pointer;
+  font-size:14px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ═══════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════ */
+.app{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+/* ═══════════════════════════════════════
+   LEFT PANEL — CONFIG
+═══════════════════════════════════════ */
+.config-panel{
+  width:380px;flex-shrink:0;
+  overflow-y:auto;background:var(--bg);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.config-panel::-webkit-scrollbar{width:4px;}
+.config-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ═══════════════════════════════════════
+   LINK MODE SELECTOR
+═══════════════════════════════════════ */
+.lm-section{
+  padding:14px 14px 10px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.lm-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--text-dim);margin-bottom:8px;
+}
+.lm-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.lm-card{
+  padding:10px 12px;border-radius:var(--rad);border:1.5px solid var(--border);
+  cursor:pointer;background:var(--surface2);
+  transition:all .18s;user-select:none;position:relative;overflow:hidden;
+}
+.lm-card:hover{border-color:var(--border2);}
+.lm-card.active-sl{
+  border-color:var(--accent);background:var(--accent-glow);
+}
+.lm-card.active-dl{
+  border-color:var(--accent-dl);background:rgba(139,92,246,.1);
+}
+.lm-card-icon{
+  font-size:18px;margin-bottom:4px;
+}
+.lm-card-name{font-size:13px;font-weight:700;margin-bottom:1px;}
+.lm-card.active-sl .lm-card-name{color:var(--accent);}
+.lm-card.active-dl .lm-card-name{color:var(--accent-dl);}
+.lm-card-cap{font-size:11px;color:var(--text-mid);}
+.lm-card-dot{
+  position:absolute;top:9px;right:9px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--border2);transition:background .15s;
+}
+.lm-card.active-sl .lm-card-dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.lm-card.active-dl .lm-card-dot{background:var(--accent-dl);box-shadow:0 0 6px var(--accent-dl);}
+
+/* Warning banner */
+.lm-warn{
+  display:none;margin-top:8px;
+  padding:8px 10px;border-radius:var(--rads);
+  background:var(--yellow-bg);border:1px solid rgba(245,158,11,.25);
+  color:var(--yellow);font-size:11px;font-weight:600;
+  gap:6px;align-items:flex-start;
+}
+.lm-warn.show{display:flex;}
+.lm-warn-icon{flex-shrink:0;margin-top:1px;}
+
+/* ═══════════════════════════════════════
+   CONFIG SECTIONS
+═══════════════════════════════════════ */
+.cfg-section{
+  border-bottom:1px solid var(--border);
+}
+.cfg-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;cursor:pointer;user-select:none;
+  gap:8px;
+}
+.cfg-hdr:hover{background:var(--surface2);}
+.cfg-hdr-left{display:flex;align-items:center;gap:9px;}
+.cfg-icon{
+  width:26px;height:26px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+}
+.cfg-title{font-size:13px;font-weight:600;}
+.cfg-sub{font-size:11px;color:var(--text-mid);margin-top:1px;}
+.cfg-hdr-right{display:flex;align-items:center;gap:8px;}
+.cfg-caret{
+  color:var(--text-dim);font-size:11px;
+  transition:transform .2s;flex-shrink:0;
+}
+.cfg-caret.open{transform:rotate(90deg);}
+.cfg-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.cfg-body.collapsed{display:none;}
+
+/* Section enable toggle in header */
+.sec-tog{
+  position:relative;width:34px;height:18px;flex-shrink:0;
+}
+.sec-tog input{opacity:0;width:0;height:0;position:absolute;}
+.sec-tog-sl{
+  position:absolute;inset:0;background:var(--border);border-radius:20px;
+  cursor:pointer;transition:.2s;
+}
+.sec-tog-sl::before{
+  content:'';position:absolute;width:12px;height:12px;
+  background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s;
+}
+.sec-tog input:checked+.sec-tog-sl{background:var(--accent);}
+.sec-tog input:checked+.sec-tog-sl::before{transform:translateX(16px);}
+
+/* ═══════════════════════════════════════
+   FORM ELEMENTS
+═══════════════════════════════════════ */
+.field{display:flex;flex-direction:column;gap:4px;}
+.field-lbl{
+  font-size:11px;font-weight:600;color:var(--text-mid);
+  text-transform:uppercase;letter-spacing:.4px;
+  display:flex;align-items:center;gap:4px;
+}
+.field-hint{font-size:11px;color:var(--text-dim);margin-top:2px;}
+select,input[type=number]{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rads);color:var(--text);
+  padding:7px 10px;font-size:13px;width:100%;font-family:inherit;
+  transition:border-color .15s;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238b949e' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+select:focus,input:focus{border-color:var(--accent);}
+[data-theme="light"] select,[data-theme="light"] input[type=number]{background:#fff;}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+
+/* ── Preset chips ── */
+.preset-wrap{display:flex;flex-direction:column;gap:6px;}
+.preset-group-lbl{font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;}
+.preset-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.pchip{
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);
+  color:var(--text-mid);cursor:pointer;transition:all .15s;
+  font-family:inherit;white-space:nowrap;
+}
+.pchip:hover{border-color:var(--border2);color:var(--text);}
+.pchip.active{border-color:var(--accent);background:var(--accent-glow);color:var(--accent);}
+.pchip.dl-chip{border-style:dashed;}
+.pchip.dl-chip.active{border-color:var(--accent-dl);background:rgba(139,92,246,.1);color:var(--accent-dl);border-style:solid;}
+
+/* ── Toggle rows ── */
+.tog-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;border-radius:var(--rads);
+  background:var(--surface2);border:1px solid var(--border);gap:8px;
+}
+.tog-row-info{flex:1;}
+.tog-row-name{font-size:12px;font-weight:600;}
+.tog-row-desc{font-size:11px;color:var(--text-mid);}
+.tog{position:relative;width:34px;height:18px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;position:absolute;}
+.tog-sl{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:.2s;}
+.tog-sl::before{content:'';position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s;}
+.tog input:checked+.tog-sl{background:var(--accent);}
+.tog input:checked+.tog-sl::before{transform:translateX(16px);}
+
+/* ── Status chip ── */
+.status-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+}
+.sc-ok  {background:var(--green-bg); color:var(--green); border:1px solid rgba(34,197,94,.25);}
+.sc-warn{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(245,158,11,.25);}
+.sc-info{background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.2);}
+.sc-dl  {background:rgba(139,92,246,.1);color:var(--accent-dl);border:1px solid rgba(139,92,246,.2);}
+
+/* ── Subsection divider ── */
+.sub-divider{height:1px;background:var(--border);margin:4px 0;}
+.sub-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);}
+
+/* ── Tooltip ── */
+.tip{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:14px;height:14px;border-radius:50%;font-size:9px;font-weight:700;
+  background:var(--surface3);border:1px solid var(--border);
+  color:var(--text-dim);cursor:help;flex-shrink:0;
+  position:relative;
+}
+.tip:hover::after{
+  content:attr(data-tip);position:absolute;
+  bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--surface3);border:1px solid var(--border2);
+  color:var(--text);font-size:11px;font-weight:400;
+  padding:6px 10px;border-radius:6px;width:200px;line-height:1.4;
+  white-space:normal;z-index:200;box-shadow:var(--shadow);
+  text-transform:none;letter-spacing:0;pointer-events:none;
+}
+
+/* advanced toggle */
+.adv-toggle{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text-dim);cursor:pointer;
+  padding:4px 0;border:none;background:none;font-family:inherit;
+  transition:color .15s;
+}
+.adv-toggle:hover{color:var(--text-mid);}
+.adv-toggle .adv-caret{transition:transform .2s;}
+.adv-toggle.open .adv-caret{transform:rotate(90deg);}
+.adv-fields{display:none;}
+.adv-fields.open{display:flex;flex-direction:column;gap:8px;}
+
+/* ═══════════════════════════════════════
+   RIGHT PANEL — RESULTS
+═══════════════════════════════════════ */
+.results-panel{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.results-panel::-webkit-scrollbar{width:4px;}
+.results-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── Result card ── */
+.r-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rad);box-shadow:var(--shadow);overflow:hidden;
+  flex-shrink:0;
+}
+.r-card-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;
+}
+.r-card-hdr:hover{background:var(--surface2);}
+.r-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-mid);}
+.r-card-caret{color:var(--text-dim);font-size:10px;transition:transform .2s;}
+.r-card-caret.open{transform:rotate(90deg);}
+.r-card-body{padding:14px;}
+.r-card-body.collapsed{display:none;}
+
+/* ── Main BW display ── */
+.bw-hero{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:14px;
+}
+.bw-number-wrap{}
+.bw-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:4px;}
+.bw-number{
+  font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;
+}
+.bw-unit{font-size:15px;font-weight:500;color:var(--text-mid);margin-left:4px;}
+.bw-of{font-size:12px;color:var(--text-dim);margin-top:4px;}
+.bw-status-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.bw-badge{
+  padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;
+}
+.bw-pct{
+  font-size:28px;font-weight:800;letter-spacing:-0.5px;
+  font-variant-numeric:tabular-nums;
+}
+.b-ok  {background:var(--green-bg); color:var(--green);}
+.b-warn{background:var(--yellow-bg);color:var(--yellow);}
+.b-hi  {background:rgba(249,115,22,.1);color:var(--orange);}
+.b-over{background:var(--red-bg);   color:var(--red);}
+
+/* ── Capacity bar ── */
+.cap-bar-wrap{
+  background:var(--surface2);border-radius:6px;height:20px;
+  overflow:hidden;border:1px solid var(--border);margin-bottom:6px;
+}
+.cap-bar-segs{display:flex;height:100%;}
+.cap-seg{height:100%;transition:width .4s ease;min-width:0;border-right:1px solid rgba(0,0,0,.2);}
+.cap-seg:last-child{border-right:none;}
+.cap-bar-lbls{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+
+/* ── Dual-link bars ── */
+.dl-bars{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.dl-link-row{}
+.dl-link-lbl{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:4px;
+}
+.dl-link-name{
+  font-size:11px;font-weight:700;letter-spacing:.3px;
+  display:flex;align-items:center;gap:5px;
+}
+.dl-port-pill{
+  font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600;
+}
+.dl-port-a{background:rgba(59,130,246,.15);color:var(--accent);}
+.dl-port-b{background:rgba(139,92,246,.15);color:var(--accent-dl);}
+.dl-link-bw{font-size:11px;color:var(--text-mid);}
+.dl-bar-wrap{background:var(--surface2);border-radius:5px;height:14px;overflow:hidden;border:1px solid var(--border);}
+.dl-bar-segs{display:flex;height:100%;}
+
+/* Remaining row */
+.remain-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
+}
+.remain-lbl{font-size:12px;color:var(--text-mid);}
+.remain-val{font-size:14px;font-weight:700;}
+
+/* ── Legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--border);}
+.leg-item{display:flex;align-items:center;gap:4px;}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.leg-txt{font-size:11px;color:var(--text-mid);}
+
+/* ── Stream table ── */
+.stbl{width:100%;}
+.stbl-hdr{
+  display:grid;grid-template-columns:10px 1fr 90px 80px 50px;
+  padding:6px 14px;gap:10px;align-items:center;
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--text-dim);
+  border-bottom:1px solid var(--border);
+}
+.stbl-row{
+  display:grid;grid-template-columns:10px 1fr 90px 80px 50px;
+  padding:8px 14px;gap:10px;align-items:center;
+  border-bottom:1px solid rgba(48,54,61,.5);
+  transition:background .12s;
+}
+.stbl-row:last-child{border-bottom:none;}
+.stbl-row:hover{background:var(--surface2);}
+.stbl-row.off{opacity:.28;}
+.stbl-row.grp{background:rgba(0,0,0,.12);}
+[data-theme="light"] .stbl-row.grp{background:rgba(0,0,0,.03);}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sname{font-size:12px;font-weight:500;}
+.sdet{font-size:10px;color:var(--text-mid);margin-top:1px;}
+.sbw{font-size:12px;font-weight:700;text-align:right;white-space:nowrap;}
+.sbw-u{font-size:10px;color:var(--text-mid);font-weight:400;}
+.slnk{font-size:10px;color:var(--text-mid);text-align:center;}
+.smini{display:flex;align-items:center;}
+.smini-bg{flex:1;background:var(--surface2);border-radius:2px;height:4px;overflow:hidden;}
+.smini-fill{height:100%;border-radius:2px;transition:width .3s;}
+
+/* ── Metrics grid ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.metric-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rads);padding:11px 12px;
+}
+.metric-lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.metric-val{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;}
+.metric-unit{font-size:11px;color:var(--text-mid);margin-left:2px;font-weight:400;}
+
+/* ── Compat table ── */
+.compat-tbl{width:100%;border-collapse:collapse;}
+.compat-tbl th,.compat-tbl td{
+  padding:8px 10px;font-size:11px;
+  border-bottom:1px solid var(--border);text-align:left;
+}
+.compat-tbl th{font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.4px;}
+.compat-tbl td:first-child{font-weight:600;}
+.compat-tbl tr:last-child td{border-bottom:none;}
+.ct-ok{color:var(--green);font-weight:700;}
+.ct-no{color:var(--red);font-weight:700;}
+.ct-note{color:var(--text-dim);font-size:10px;}
+
+/* ── Peak note ── */
+.peak-note{
+  font-size:11px;color:var(--text-dim);
+  background:var(--yellow-bg);border:1px solid rgba(245,158,11,.2);
+  border-radius:var(--rads);padding:6px 10px;margin-top:8px;
+}
+
+/* ── Footer note ── */
+.foot-note{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rad);padding:12px 14px;
+  font-size:11px;color:var(--text-dim);line-height:1.7;
+}
+.foot-note b{color:var(--text-mid);}
+
+/* ── Compat pill inline ── */
+.cp{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;
+}
+.cp-sl{background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.2);}
+.cp-dl{background:rgba(139,92,246,.1);color:var(--accent-dl);border:1px solid rgba(139,92,246,.2);}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════ */
+@media(max-width:760px){
+  html,body{overflow:auto;}
+  .app{flex-direction:column;overflow:visible;}
+  .config-panel{width:100%;border-right:none;border-bottom:1px solid var(--border);overflow:visible;}
+  .stbl-hdr,.stbl-row{grid-template-columns:10px 1fr 80px 50px;}
+  .stbl-hdr .slnk,.stbl-row .slnk{display:none;}
+  .metrics-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="adv-badge">ADVANTECH</div>
+    <div class="hdr-divider"></div>
+    <div>
+      <div class="hdr-title">AVAS-<b>223</b> Bandwidth Calculator</div>
+      <div class="hdr-sub">BlueRiver AVP-2000 · SDVoE · Dual 10G SFP+</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-pill">v2.1 · PDS-062487</div>
+    <div class="hdr-pill">FW v2.2.0.0</div>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
+  </div>
+</header>
+
+<div class="app">
+
+<!-- ══════════════ CONFIG PANEL ══════════════ -->
+<div class="config-panel">
+
+  <!-- LINK MODE -->
+  <div class="lm-section">
+    <div class="lm-label">Link Mode</div>
+    <div class="lm-cards">
+      <div class="lm-card active-sl" id="lm-sl" onclick="setLinkMode('SL')">
+        <div class="lm-card-dot"></div>
+        <div class="lm-card-icon">⬜</div>
+        <div class="lm-card-name">Single-Link</div>
+        <div class="lm-card-cap">SFP+ A · 10 Gbps</div>
+      </div>
+      <div class="lm-card" id="lm-dl" onclick="setLinkMode('DL')">
+        <div class="lm-card-dot"></div>
+        <div class="lm-card-icon">⬛</div>
+        <div class="lm-card-name">Dual-Link ★</div>
+        <div class="lm-card-cap">SFP+ A+B · 20 Gbps</div>
+      </div>
+    </div>
+    <div class="lm-warn" id="lm-warn">
+      <span class="lm-warn-icon">⚠</span>
+      <span>This resolution natively requires <strong>Dual-Link</strong> for uncompressed operation. Switch to Dual-Link or use FRC / lower chroma.</span>
+    </div>
+  </div>
+
+  <!-- VIDEO INPUT -->
+  <div class="cfg-section">
+    <div class="cfg-hdr" onclick="toggleSection('vid')">
+      <div class="cfg-hdr-left">
+        <div class="cfg-icon" style="background:rgba(59,130,246,.1);color:var(--accent);">📺</div>
+        <div>
+          <div class="cfg-title">Video Input</div>
+          <div class="cfg-sub" id="vid-sub">4096×2160 @ 60 Hz · YUV 4:4:4 · 24bpp</div>
+        </div>
+      </div>
+      <div class="cfg-hdr-right">
+        <div class="cfg-caret open" id="caret-vid">›</div>
+      </div>
+    </div>
+    <div class="cfg-body" id="body-vid">
+      <!-- Preset chips -->
+      <div class="preset-wrap">
+        <div class="preset-group-lbl">Resolution Presets</div>
+        <div class="preset-chips" id="preset-chips">
+          <button class="pchip" data-key="720p60"      onclick="applyPreset('720p60')">720p 60Hz</button>
+          <button class="pchip" data-key="1080p60"     onclick="applyPreset('1080p60')">1080p 60Hz</button>
+          <button class="pchip" data-key="4kuhd24"     onclick="applyPreset('4kuhd24')">4K UHD 24Hz</button>
+          <button class="pchip" data-key="4kuhd30"     onclick="applyPreset('4kuhd30')">4K UHD 30Hz</button>
+          <button class="pchip" data-key="4kuhd60_420" onclick="applyPreset('4kuhd60_420')">4K UHD 60Hz 4:2:0</button>
+          <button class="pchip dl-chip" data-key="4kuhd60_444" onclick="applyPreset('4kuhd60_444')">4K UHD 60Hz 4:4:4 ★</button>
+          <button class="pchip" data-key="4kdci24"     onclick="applyPreset('4kdci24')">4K DCI 24Hz</button>
+          <button class="pchip" data-key="4kdci30"     onclick="applyPreset('4kdci30')">4K DCI 30Hz</button>
+          <button class="pchip" data-key="4kdci60_420" onclick="applyPreset('4kdci60_420')">4K DCI 60Hz 4:2:0</button>
+          <button class="pchip dl-chip" data-key="4kdci60_444" onclick="applyPreset('4kdci60_444')">4K DCI 60Hz 4:4:4 ★</button>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);">★ Dual-Link required for uncompressed</div>
+      </div>
+
+      <!-- Core params -->
+      <div class="row-3">
+        <div class="field">
+          <div class="field-lbl">Frame Rate</div>
+          <select id="fps" onchange="setCustomPreset();recalc()">
+            <option value="24">24 Hz</option>
+            <option value="30">30 Hz</option>
+            <option value="50">50 Hz</option>
+            <option value="60" selected>60 Hz</option>
+            <option value="120">120 Hz</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-lbl">Color Depth</div>
+          <select id="colorDepth" onchange="setCustomPreset();recalc()">
+            <option value="24" selected>8-bit</option>
+            <option value="30">10-bit</option>
+            <option value="36">12-bit</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-lbl">Chroma</div>
+          <select id="sampling" onchange="setCustomPreset();recalc()">
+            <option value="1.00" selected>4:4:4</option>
+            <option value="0.67">4:2:2</option>
+            <option value="0.50">4:2:0</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Advanced: timing params -->
+      <button class="adv-toggle" id="adv-btn" onclick="toggleAdv()">
+        <span class="adv-caret">›</span> Timing Parameters
+      </button>
+      <div class="adv-fields" id="adv-fields">
+        <div class="row-2">
+          <div class="field">
+            <div class="field-lbl">H Active <div class="tip" data-tip="Visible horizontal pixels">?</div></div>
+            <input type="number" id="hActive" value="4096" oninput="setCustomPreset();recalc()">
+          </div>
+          <div class="field">
+            <div class="field-lbl">V Active <div class="tip" data-tip="Visible vertical lines">?</div></div>
+            <input type="number" id="vActive" value="2160" oninput="setCustomPreset();recalc()">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <div class="field-lbl">H Total <div class="tip" data-tip="Total horizontal pixels including blanking">?</div></div>
+            <input type="number" id="hTotal" value="4400" oninput="setCustomPreset();recalc()">
+          </div>
+          <div class="field">
+            <div class="field-lbl">V Total <div class="tip" data-tip="Total vertical lines including blanking">?</div></div>
+            <input type="number" id="vTotal" value="2250" oninput="setCustomPreset();recalc()">
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);">Pixel clock = fps × H Total × V Total</div>
+      </div>
+
+      <!-- Derived info chips -->
+      <div id="vid-chips" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+    </div>
+  </div>
+
+  <!-- VIDEO STREAM 0 -->
+  <div class="cfg-section">
+    <div class="cfg-hdr" onclick="toggleSection('s0')">
+      <div class="cfg-hdr-left">
+        <div class="cfg-icon" style="background:rgba(59,130,246,.1);color:var(--accent);">S0</div>
+        <div>
+          <div class="cfg-title">Video Stream 0</div>
+          <div class="cfg-sub" id="s0-sub">Main · 60fps · Uncompressed</div>
+        </div>
+      </div>
+      <div class="cfg-hdr-right">
+        <label class="sec-tog" onclick="event.stopPropagation()">
+          <input type="checkbox" id="enS0" checked onchange="recalc()">
+          <span class="sec-tog-sl"></span>
+        </label>
+        <div class="cfg-caret open" id="caret-s0">›</div>
+      </div>
+    </div>
+    <div class="cfg-body" id="body-s0">
+      <div class="tog-row" id="mancomp-row">
+        <div class="tog-row-info">
+          <div class="tog-row-name">Frame Rate Converter (FRC)</div>
+          <div class="tog-row-desc">Halves the stream frame rate ÷2</div>
+        </div>
+        <label class="tog"><input type="checkbox" id="frc0" onchange="recalc()"><span class="tog-sl"></span></label>
+      </div>
+      <div class="tog-row" id="mancomp-tog-row">
+        <div class="tog-row-info">
+          <div class="tog-row-name">Force Manual Compression</div>
+          <div class="tog-row-desc">Override — applies light compression on any format</div>
+        </div>
+        <label class="tog"><input type="checkbox" id="manComp" onchange="recalc()"><span class="tog-sl"></span></label>
+      </div>
+      <div id="s0-comp"></div>
+    </div>
+  </div>
+
+  <!-- VIDEO STREAM 1 -->
+  <div class="cfg-section">
+    <div class="cfg-hdr" onclick="toggleSection('s1')">
+      <div class="cfg-hdr-left">
+        <div class="cfg-icon" style="background:rgba(139,92,246,.1);color:var(--accent-dl);">S1</div>
+        <div>
+          <div class="cfg-title">Video Stream 1 — Scaler</div>
+          <div class="cfg-sub" id="s1-sub">1280×720 · RGB 24bpp</div>
+        </div>
+      </div>
+      <div class="cfg-hdr-right">
+        <label class="sec-tog" onclick="event.stopPropagation()">
+          <input type="checkbox" id="enS1" checked onchange="recalc()">
+          <span class="sec-tog-sl"></span>
+        </label>
+        <div class="cfg-caret open" id="caret-s1">›</div>
+      </div>
+    </div>
+    <div class="cfg-body" id="body-s1">
+      <div style="font-size:11px;color:var(--text-dim);">Internal scaler — always output as RGB 24bpp regardless of input chroma.</div>
+      <div class="row-2">
+        <div class="field">
+          <div class="field-lbl">Output Width</div>
+          <input type="number" id="hA1" value="1280" oninput="recalc()">
+        </div>
+        <div class="field">
+          <div class="field-lbl">Output Height</div>
+          <input type="number" id="vA1" value="720" oninput="recalc()">
+        </div>
+      </div>
+      <div class="tog-row">
+        <div class="tog-row-info">
+          <div class="tog-row-name">FRC for Stream 1</div>
+          <div class="tog-row-desc">Halves S1 frame rate ÷2</div>
+        </div>
+        <label class="tog"><input type="checkbox" id="frc1" onchange="recalc()"><span class="tog-sl"></span></label>
+      </div>
+      <div id="s1-info" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+    </div>
+  </div>
+
+  <!-- AUDIO -->
+  <div class="cfg-section">
+    <div class="cfg-hdr" onclick="toggleSection('aud')">
+      <div class="cfg-hdr-left">
+        <div class="cfg-icon" style="background:rgba(16,185,129,.1);color:var(--ha-col);">♪</div>
+        <div>
+          <div class="cfg-title">Audio</div>
+          <div class="cfg-sub">HDMI Embedded · Quad I2S · AUX</div>
+        </div>
+      </div>
+      <div class="cfg-hdr-right">
+        <div class="cfg-caret open" id="caret-aud">›</div>
+      </div>
+    </div>
+    <div class="cfg-body" id="body-aud">
+
+      <!-- AUX -->
+      <div>
+        <div class="sub-label" style="margin-bottom:6px;">AUX Channel (HDMI Embedded Audio)</div>
+        <div class="tog-row">
+          <div class="tog-row-info">
+            <div class="tog-row-name">AUX Channel</div>
+            <div class="tog-row-desc">HDMI embedded audio packet stream</div>
+          </div>
+          <label class="tog"><input type="checkbox" id="enAux" checked onchange="recalc()"><span class="tog-sl"></span></label>
+        </div>
+        <div style="margin-top:4px;font-size:11px;color:var(--text-dim);">Sample rate follows HDMI Audio setting below.</div>
+      </div>
+
+      <div class="sub-divider"></div>
+
+      <!-- HDMI Audio -->
+      <div>
+        <div class="sub-label" style="margin-bottom:6px;">HDMI Audio (10-Channel)</div>
+        <div class="tog-row">
+          <div class="tog-row-info">
+            <div class="tog-row-name">HDMI Audio</div>
+            <div class="tog-row-desc">8 HDMI + 2 downmix channels — also enables Single I2S</div>
+          </div>
+          <label class="tog"><input type="checkbox" id="enHA" checked onchange="recalc()"><span class="tog-sl"></span></label>
+        </div>
+        <div style="margin-top:6px;" class="row-2">
+          <div class="field">
+            <div class="field-lbl">Sample Rate</div>
+            <select id="hdmiSR" onchange="recalc()">
+              <option value="32000">32 kHz</option>
+              <option value="44100">44.1 kHz</option>
+              <option value="48000" selected>48 kHz</option>
+              <option value="96000">96 kHz</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Bit Depth</div>
+            <select id="hdmiRes" onchange="recalc()">
+              <option value="16">16-bit</option>
+              <option value="24" selected>24-bit</option>
+              <option value="32">32-bit</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-divider"></div>
+
+      <!-- Quad I2S -->
+      <div>
+        <div class="sub-label" style="margin-bottom:6px;">Quad I2S (8 Channels)</div>
+        <div class="tog-row">
+          <div class="tog-row-info">
+            <div class="tog-row-name">Quad I2S</div>
+            <div class="tog-row-desc">8-channel I2S encapsulation — no AES overhead</div>
+          </div>
+          <label class="tog"><input type="checkbox" id="enI2S" checked onchange="recalc()"><span class="tog-sl"></span></label>
+        </div>
+        <div style="margin-top:6px;" class="row-3">
+          <div class="field">
+            <div class="field-lbl">Rate</div>
+            <select id="i2sSR" onchange="recalc()">
+              <option value="32000">32 kHz</option>
+              <option value="44100">44.1 kHz</option>
+              <option value="48000" selected>48 kHz</option>
+              <option value="96000">96 kHz</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Channels</div>
+            <select id="i2sCh" onchange="recalc()">
+              <option>2</option><option>4</option><option value="6" selected>6</option><option>8</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Bit Depth</div>
+            <select id="i2sRes" onchange="recalc()">
+              <option value="16">16-bit</option>
+              <option value="24" selected>24-bit</option>
+              <option value="32">32-bit</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA CHANNELS -->
+  <div class="cfg-section">
+    <div class="cfg-hdr" onclick="toggleSection('dat')">
+      <div class="cfg-hdr-left">
+        <div class="cfg-icon" style="background:rgba(245,158,11,.1);color:var(--rs-col);">⚙</div>
+        <div>
+          <div class="cfg-title">Data Channels</div>
+          <div class="cfg-sub">RS232 Serial · InfraRed</div>
+        </div>
+      </div>
+      <div class="cfg-hdr-right">
+        <div class="cfg-caret open" id="caret-dat">›</div>
+      </div>
+    </div>
+    <div class="cfg-body" id="body-dat">
+
+      <!-- RS232 -->
+      <div>
+        <div class="sub-label" style="margin-bottom:6px;">RS232</div>
+        <div class="tog-row">
+          <div class="tog-row-info">
+            <div class="tog-row-name">RS232 Serial</div>
+            <div class="tog-row-desc">Serial control pass-through</div>
+          </div>
+          <label class="tog"><input type="checkbox" id="enRS" checked onchange="recalc()"><span class="tog-sl"></span></label>
+        </div>
+        <div style="margin-top:6px;" class="row-2">
+          <div class="field">
+            <div class="field-lbl">Channels</div>
+            <select id="rsCh" onchange="recalc()">
+              <option>1</option><option>2</option><option>3</option><option value="4" selected>4</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Baud Rate</div>
+            <select id="rsBaud" onchange="recalc()">
+              <option value="9600">9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200" selected>115200</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:6px;" class="row-3">
+          <div class="field">
+            <div class="field-lbl">Data Bits</div>
+            <select id="rsData" onchange="recalc()">
+              <option value="7">7</option><option value="8" selected>8</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Parity</div>
+            <select id="rsPar" onchange="recalc()">
+              <option value="0" selected>None</option><option value="1">Even/Odd</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Stop Bits</div>
+            <select id="rsStop" onchange="recalc()">
+              <option value="1" selected>1</option><option value="2">2</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-divider"></div>
+
+      <!-- IR -->
+      <div>
+        <div class="sub-label" style="margin-bottom:6px;">InfraRed</div>
+        <div class="tog-row">
+          <div class="tog-row-info">
+            <div class="tog-row-name">IR Pass-Through</div>
+            <div class="tog-row-desc">38 kHz fixed carrier · ~0.02 Mbps</div>
+          </div>
+          <label class="tog"><input type="checkbox" id="enIR" checked onchange="recalc()"><span class="tog-sl"></span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /config-panel -->
+
+<!-- ══════════════ RESULTS PANEL ══════════════ -->
+<div class="results-panel">
+
+  <!-- ── BW OVERVIEW ── -->
+  <div class="r-card">
+    <div class="r-card-body">
+      <div class="bw-hero">
+        <div class="bw-number-wrap">
+          <div class="bw-label">Total Bandwidth</div>
+          <div>
+            <span class="bw-number" id="r-total">—</span>
+            <span class="bw-unit">Mbps</span>
+          </div>
+          <div class="bw-of" id="r-of-txt">of 10,000 Mbps</div>
+        </div>
+        <div class="bw-status-wrap">
+          <div class="bw-badge b-ok" id="r-badge">—</div>
+          <div class="bw-pct" id="r-pct" style="color:var(--green)">—%</div>
+          <div style="font-size:10px;color:var(--text-dim)" id="r-mode-pill">SL · 10G</div>
+        </div>
+      </div>
+
+      <!-- Single-link bar -->
+      <div id="sl-bar-wrap">
+        <div class="cap-bar-wrap">
+          <div class="cap-bar-segs" id="r-bar"></div>
+        </div>
+        <div class="cap-bar-lbls">
+          <span id="r-used-lbl">0 Mbps used</span>
+          <span id="r-lim-txt">10 Gbps limit</span>
+        </div>
+      </div>
+
+      <!-- Dual-link bars -->
+      <div id="dl-bars-wrap" style="display:none;">
+        <div class="dl-bars">
+          <div class="dl-link-row">
+            <div class="dl-link-lbl">
+              <div class="dl-link-name"><span class="dl-port-pill dl-port-a">SFP+ A</span> Link A — Primary Video + Aux</div>
+              <div class="dl-link-bw" id="dl-a-bw">—</div>
+            </div>
+            <div class="dl-bar-wrap"><div class="dl-bar-segs" id="dl-bar-a"></div></div>
+          </div>
+          <div class="dl-link-row">
+            <div class="dl-link-lbl">
+              <div class="dl-link-name"><span class="dl-port-pill dl-port-b">SFP+ B</span> Link B — Overflow + Scaler</div>
+              <div class="dl-link-bw" id="dl-b-bw">—</div>
+            </div>
+            <div class="dl-bar-wrap"><div class="dl-bar-segs" id="dl-bar-b"></div></div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:6px;" id="r-pct-dl"></div>
+      </div>
+
+      <div class="remain-row">
+        <div class="remain-lbl">Remaining headroom</div>
+        <div class="remain-val" id="r-remain">—</div>
+      </div>
+      <div class="peak-note">⚠ Peak bandwidth is 5–6% higher than calculated average. Leave headroom accordingly.</div>
+    </div>
+    <div class="legend" id="r-legend"></div>
+  </div>
+
+  <!-- ── STREAM BREAKDOWN ── -->
+  <div class="r-card">
+    <div class="r-card-hdr" onclick="toggleRCard('streams')">
+      <div class="r-card-title">Stream Breakdown</div>
+      <div class="r-card-caret open" id="rcaret-streams">›</div>
+    </div>
+    <div class="r-card-body" id="rbody-streams" style="padding:0;">
+      <div class="stbl-hdr">
+        <div></div>
+        <div>Stream</div>
+        <div style="text-align:right">Bandwidth</div>
+        <div style="text-align:center">Link</div>
+        <div>Share</div>
+      </div>
+      <div id="r-rows"></div>
+    </div>
+  </div>
+
+  <!-- ── METRICS ── -->
+  <div class="r-card">
+    <div class="r-card-hdr" onclick="toggleRCard('metrics')">
+      <div class="r-card-title">Signal Metrics</div>
+      <div class="r-card-caret open" id="rcaret-metrics">›</div>
+    </div>
+    <div class="r-card-body" id="rbody-metrics">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-lbl">Pixel Clock</div>
+          <div><span class="metric-val" id="e-pclk">—</span><span class="metric-unit">MHz</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">TMDS Tx Clock</div>
+          <div><span class="metric-val" id="e-tmds">—</span><span class="metric-unit">MHz</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">Utilization</div>
+          <div><span class="metric-val" id="e-util">—</span><span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">Link Mode</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px;" id="e-mode">Single-Link</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROUTING COMPATIBILITY ── -->
+  <div class="r-card">
+    <div class="r-card-hdr" onclick="toggleRCard('compat')">
+      <div class="r-card-title">Routing Compatibility</div>
+      <div class="r-card-caret open" id="rcaret-compat">›</div>
+    </div>
+    <div class="r-card-body" id="rbody-compat">
+      <table class="compat-tbl">
+        <thead>
+          <tr><th>TX Mode</th><th>SL RX</th><th>DL RX</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr id="compat-sl-row">
+            <td><span class="cp cp-sl">Single-Link ★</span></td>
+            <td class="ct-ok">✓</td>
+            <td class="ct-ok">✓</td>
+            <td class="ct-note">SL TX routes to SL, DL, and VEGA RX</td>
+          </tr>
+          <tr id="compat-dl-row" style="display:none">
+            <td><span class="cp cp-dl">Dual-Link ★</span></td>
+            <td class="ct-no">✗</td>
+            <td class="ct-ok">✓</td>
+            <td class="ct-note">DL TX requires DL RX. All units must be set to DL via BlueRiver API before routing.</td>
+          </tr>
+          <tr><td colspan="4" class="ct-note" style="color:var(--text-dim);padding-top:6px;">IGMP Snooping required on managed 10G switch for SDVoE multicast.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── NOTES ── -->
+  <div class="foot-note">
+    <b>AVP-2000 Calculations</b> — All values are theoretical average bandwidth. Peak is 5–6% higher.
+    <b>Dual-Link</b>: SFP+ A+B bonded at 20 Gbps — Link A carries S0 + all aux up to 10G, Link B carries overflow + S1.
+    <b>Light compression</b> (5:6:5 mapping, ratio 0.44–0.67) auto-activates in Single-Link when H Active ≥ 3000 px, fps ≥ 45 Hz, FRC off.
+    <b>Dual-Link</b> is always fully uncompressed.
+    <b>S1</b> always outputs RGB 24bpp. Max input: 8192×4096.
+    API + firmware required to switch Link Mode before routing in AV Manager.
+  </div>
+
+</div><!-- /results-panel -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const LINK_10G = 10_000_000_000;
+const LINK_20G = 20_000_000_000;
+
+const OH = {
+  video:82, aux:82, hdmiAudio:82, quadI2S:66,
+  singleI2S:66, rs232:76, ir:88, sync:66, timestamp:66, match:54,
+};
+
+const PRESETS = {
+  '720p60':     [60, 1650,1280, 750, 720,'1.00',false],
+  '1080p60':    [60, 2200,1920,1125,1080,'1.00',false],
+  '4kuhd24':    [24, 5500,3840,2250,2160,'1.00',false],
+  '4kuhd30':    [30, 4400,3840,2250,2160,'1.00',false],
+  '4kuhd60_420':[60, 4400,3840,2250,2160,'0.50',false],
+  '4kuhd60_444':[60, 4400,3840,2250,2160,'1.00',true],
+  '4kdci24':    [24, 5500,4096,2250,2160,'1.00',false],
+  '4kdci30':    [30, 4400,4096,2250,2160,'1.00',false],
+  '4kdci60_420':[60, 4400,4096,2250,2160,'0.50',false],
+  '4kdci60_444':[60, 4400,4096,2250,2160,'1.00',true],
+};
+
+const STREAM_META = [
+  {id:'S0',   label:'Video Stream 0', det:'Main · Line Rate',           col:'var(--s0-col)'},
+  {id:'SYNC', label:'Sync Packets',   det:'Raster timing',              col:'#1d4ed8'},
+  {id:'TS',   label:'Timestamp',      det:'TMDS clock sync',            col:'#2563eb'},
+  {id:'MATCH',label:'Match Packets',  det:'VCO clock (171 Hz)',         col:'#3b82f6'},
+  {id:'S1',   label:'Video Stream 1', det:'Scaler · RGB 24bpp',         col:'var(--s1-col)'},
+  {id:'AUX',  label:'AUX Channel',    det:'HDMI embedded audio pkts',   col:'var(--aux-col)'},
+  {id:'HDMIA',label:'HDMI Audio',     det:'10-ch encapsulation',        col:'var(--ha-col)'},
+  {id:'SI2S', label:'Single I2S',     det:'2ch · 48kHz · 24-bit fixed', col:'var(--si2s-col)'},
+  {id:'QI2S', label:'Quad I2S',       det:'8-ch encapsulation',         col:'var(--qi2s-col)'},
+  {id:'RS232',label:'RS232',          det:'Serial control',             col:'var(--rs-col)'},
+  {id:'IR',   label:'InfraRed',       det:'38 kHz fixed',              col:'var(--ir-col)'},
+  {id:'CTRL', label:'Control',        det:'Recurrent UDP (fixed)',      col:'var(--ct-col)'},
+];
+
+const COLORS = {
+  S0:'var(--s0-col)',SYNC:'#1d4ed8',TS:'#2563eb',MATCH:'#3b82f6',
+  S1:'var(--s1-col)',AUX:'var(--aux-col)',HDMIA:'var(--ha-col)',
+  SI2S:'var(--si2s-col)',QI2S:'var(--qi2s-col)',RS232:'var(--rs-col)',
+  IR:'var(--ir-col)',CTRL:'var(--ct-col)',
+};
+
+let linkMode = 'SL';
+let currentPreset = 'custom';
+
+// ═══════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('avas223-theme', next);
+}
+
+// ═══════════════════════════════════════════════════
+//  LINK MODE
+// ═══════════════════════════════════════════════════
+function setLinkMode(m) {
+  linkMode = m;
+  document.getElementById('lm-sl').className = 'lm-card' + (m==='SL' ? ' active-sl' : '');
+  document.getElementById('lm-dl').className = 'lm-card' + (m==='DL' ? ' active-dl' : '');
+  document.getElementById('sl-bar-wrap').style.display   = (m==='SL') ? '' : 'none';
+  document.getElementById('dl-bars-wrap').style.display  = (m==='DL') ? '' : 'none';
+  document.getElementById('compat-sl-row').style.display = (m==='SL') ? '' : 'none';
+  document.getElementById('compat-dl-row').style.display = (m==='DL') ? '' : 'none';
+  document.getElementById('mancomp-tog-row').style.display = (m==='DL') ? 'none' : '';
+  recalc();
+}
+
+// ═══════════════════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════════════════
+function applyPreset(key) {
+  if (!PRESETS[key]) return;
+  const [fps,hT,hA,vT,vA,samp,dl] = PRESETS[key];
+  document.getElementById('fps').value      = fps;
+  document.getElementById('hTotal').value   = hT;
+  document.getElementById('hActive').value  = hA;
+  document.getElementById('vTotal').value   = vT;
+  document.getElementById('vActive').value  = vA;
+  document.getElementById('sampling').value = samp;
+  currentPreset = key;
+  // Update chip highlight
+  document.querySelectorAll('.pchip').forEach(c => {
+    c.classList.toggle('active', c.dataset.key === key);
+  });
+  if (dl && linkMode === 'SL') setLinkMode('DL');
+  recalc();
+}
+
+function setCustomPreset() {
+  currentPreset = 'custom';
+  document.querySelectorAll('.pchip').forEach(c => c.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════════════════
+//  COLLAPSE
+// ═══════════════════════════════════════════════════
+function toggleSection(id) {
+  const b = document.getElementById('body-'+id);
+  const c = document.getElementById('caret-'+id);
+  if (!b||!c) return;
+  const col = b.classList.toggle('collapsed');
+  c.classList.toggle('open', !col);
+}
+
+function toggleRCard(id) {
+  const b = document.getElementById('rbody-'+id);
+  const c = document.getElementById('rcaret-'+id);
+  if (!b||!c) return;
+  const col = b.classList.toggle('collapsed');
+  c.classList.toggle('open', !col);
+}
+
+function toggleAdv() {
+  const f = document.getElementById('adv-fields');
+  const b = document.getElementById('adv-btn');
+  const open = f.classList.toggle('open');
+  b.classList.toggle('open', open);
+}
+
+// ═══════════════════════════════════════════════════
+//  COMPRESSION LOOKUP
+// ═══════════════════════════════════════════════════
+function getComp(hActive, fps0, colorDepth, sampling, frcEnable, manComp, isDualLink) {
+  if (isDualLink) return {ratio:1.0, payload:1440, mode:'none'};
+  const autoComp = hActive >= 3000 && fps0 >= 45 && !frcEnable;
+  if (!autoComp && !manComp) return {ratio:1.0, payload:1440, mode:'none'};
+  if (sampling >= 1.0) {
+    if (colorDepth===24) return {ratio:0.67, payload:960, mode:'5:6:5 out of 8:8:8'};
+    if (colorDepth===30) return {ratio:0.53, payload:960, mode:'5:6:5 out of 10:10:10'};
+    if (colorDepth===36) return {ratio:0.44, payload:960, mode:'5:6:5 out of 12:12:12'};
+  }
+  return {ratio:0.67, payload:960, mode:'8:8:0 chroma sub'};
+}
+
+// ═══════════════════════════════════════════════════
+//  VIDEO BW FORMULA
+// ═══════════════════════════════════════════════════
+function calcVideo(hActive, colorDepth, samp, compRatio, payloadSz, lineRate, scalerV) {
+  const bitsPerLine = hActive * colorDepth * samp * compRatio;
+  const nCmpl = Math.floor(bitsPerLine / (payloadSz * 8));
+  const frac  = (bitsPerLine / (payloadSz * 8)) - nCmpl;
+  const nIncl = frac > 1e-9 ? 1 : 0;
+  const lastPkt = frac * payloadSz;
+  const bytesPerLine = nCmpl*(payloadSz+OH.video) + nIncl*(lastPkt+OH.video);
+  return bytesPerLine * 8 * lineRate * scalerV;
+}
+
+// ═══════════════════════════════════════════════════
+//  MAIN CALCULATION
+// ═══════════════════════════════════════════════════
+function recalc() {
+  const fps    = parseFloat(document.getElementById('fps').value)      || 60;
+  const hTot   = parseInt(document.getElementById('hTotal').value)     || 4400;
+  const hAct   = parseInt(document.getElementById('hActive').value)    || 4096;
+  const vTot   = parseInt(document.getElementById('vTotal').value)     || 2250;
+  const vAct   = parseInt(document.getElementById('vActive').value)    || 2160;
+  const cdepth = parseInt(document.getElementById('colorDepth').value) || 24;
+  const samp   = parseFloat(document.getElementById('sampling').value) || 1.0;
+
+  const enS0  = document.getElementById('enS0').checked;
+  const frc0  = document.getElementById('frc0').checked;
+  const manC  = document.getElementById('manComp').checked;
+  const enS1  = document.getElementById('enS1').checked;
+  const hA1   = parseInt(document.getElementById('hA1').value)         || 1280;
+  const vA1   = parseInt(document.getElementById('vA1').value)         || 720;
+  const frc1  = document.getElementById('frc1').checked;
+  const enAux = document.getElementById('enAux').checked;
+  const enHA  = document.getElementById('enHA').checked;
+  const hdmiSR= parseInt(document.getElementById('hdmiSR').value)      || 48000;
+  const hdmiRes=parseInt(document.getElementById('hdmiRes').value)     || 24;
+  const enI2S = document.getElementById('enI2S').checked;
+  const i2sSR = parseInt(document.getElementById('i2sSR').value)       || 48000;
+  const i2sRes= parseInt(document.getElementById('i2sRes').value)      || 24;
+  const enRS  = document.getElementById('enRS').checked;
+  const rsCh  = parseInt(document.getElementById('rsCh').value)        || 4;
+  const rsBaud= parseInt(document.getElementById('rsBaud').value)      || 115200;
+  const rsD   = parseInt(document.getElementById('rsData').value)      || 8;
+  const rsP   = parseInt(document.getElementById('rsPar').value)       || 0;
+  const rsS   = parseInt(document.getElementById('rsStop').value)      || 1;
+  const enIR  = document.getElementById('enIR').checked;
+
+  const pixClock = fps * hTot * vTot;
+  const realTMDS = fps * hTot * vTot * cdepth * samp / 3 / 8;
+  const txTMDS   = (realTMDS > 340e6) ? pixClock / 4 : pixClock;
+
+  const fps0      = fps * (frc0 ? 0.5 : 1.0);
+  const lineRate0 = vTot * fps0;
+  const comp0     = getComp(hAct, fps0, cdepth, samp, frc0, manC, linkMode==='DL');
+
+  const bw_s0   = enS0 ? calcVideo(hAct, cdepth, samp, comp0.ratio, comp0.payload, lineRate0, 1.0) : 0;
+  const bw_sync = enS0 ? fps * (64 + OH.sync) * 8 : 0;
+  const bw_ts   = enS0 ? (txTMDS / 4096) * (8 + 10 + OH.timestamp) * 8 : 0;
+  const bw_match= enS0 ? 171.663 * (8 + 10 + OH.match) * 8 : 0;
+
+  const fps1      = fps * (frc1 ? 0.5 : 1.0);
+  const lineRate1 = vTot * fps1;
+  const scalerV1  = vA1 / vAct;
+  const bw_s1     = enS1 ? calcVideo(hA1, 24, 1.0, 1.0, 1440, lineRate1, scalerV1) : 0;
+
+  const bw_aux    = enAux ? hdmiSR * (48 + OH.aux) * 8 : 0;
+  const hdmiSlPS  = Math.ceil((hdmiRes * 10) / 64);
+  const hdmiPay   = hdmiSlPS * 32 * 8;
+  const hdmiPR    = hdmiSR / 32;
+  const bw_hdmia  = enHA ? hdmiPR * (hdmiPay + OH.hdmiAudio) * 8 : 0;
+  const bw_si2s   = enHA ? 4000 * (72 + 8 + OH.singleI2S) * 8 : 0;
+  const i2sSlPS   = Math.ceil((i2sRes * 8) / 64);
+  const i2sPay    = i2sSlPS * 32 * 8;
+  const i2sPR     = i2sSR / 32;
+  const bw_qi2s   = enI2S ? i2sPR * (i2sPay + OH.quadI2S) * 8 : 0;
+
+  const rsRaw   = rsBaud / (1 + rsP + rsD + rsS + 1);
+  const rsPay   = Math.ceil(rsRaw / 8);
+  const rsBuf   = 56;
+  const rsCmpl  = Math.floor(rsPay / rsBuf) * rsCh;
+  const rsFrac  = (rsPay / rsBuf) - Math.floor(rsPay / rsBuf);
+  const rsIncl  = Math.ceil(rsFrac) * rsCh;
+  const rsLast  = rsFrac * rsBuf;
+  const bw_rs232= enRS ? (rsCmpl*(rsBuf+OH.rs232) + rsIncl*(rsLast+OH.rs232)) * 8 : 0;
+
+  const irRaw   = (27e6/710 - (120+1038)) / ((72+48)/2);
+  const irPay   = Math.ceil(4 * irRaw);
+  const irBuf   = 1024;
+  const irCmpl  = Math.floor(irPay / irBuf);
+  const irFrac  = (irPay / irBuf) - irCmpl;
+  const irLast  = irFrac * irBuf;
+  const bw_ir   = enIR ? (irCmpl*(irBuf+OH.ir) + Math.ceil(irFrac)*(irLast+OH.ir)) * 8 : 0;
+
+  const bw_ctrl = 23856;
+
+  const streams = {
+    S0:bw_s0,SYNC:bw_sync,TS:bw_ts,MATCH:bw_match,
+    S1:bw_s1,AUX:bw_aux,HDMIA:bw_hdmia,SI2S:bw_si2s,
+    QI2S:bw_qi2s,RS232:bw_rs232,IR:bw_ir,CTRL:bw_ctrl,
+  };
+  const totalBPS  = Object.values(streams).reduce((a,b)=>a+b,0);
+  const cap       = linkMode==='DL' ? LINK_20G : LINK_10G;
+  const capMbps   = cap / 1e6;
+  const totalMbps = totalBPS / 1e6;
+  const remainMbps= (cap - totalBPS) / 1e6;
+  const pct       = totalBPS / cap * 100;
+
+  const s0Group    = bw_s0 + bw_sync + bw_ts + bw_match;
+  const auxGroup   = bw_aux + bw_hdmia + bw_si2s + bw_qi2s + bw_rs232 + bw_ir + bw_ctrl;
+  const s0AuxTotal = s0Group + auxGroup;
+  const linkA_bps  = Math.min(s0AuxTotal, LINK_10G);
+  const linkB_bps  = Math.max(0, s0AuxTotal - LINK_10G) + bw_s1;
+  const linkA_pct  = linkA_bps / LINK_10G * 100;
+  const linkB_pct  = linkB_bps / LINK_10G * 100;
+
+  const rawVideoBW = hAct * vAct * fps * cdepth * samp;
+  const needsDL    = rawVideoBW > LINK_10G * 0.85;
+  document.getElementById('lm-warn').classList.toggle('show', linkMode==='SL' && needsDL);
+
+  // ── Update Overview ──
+  const fmtN = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('r-total').textContent = fmtN(totalMbps);
+  document.getElementById('r-pct').textContent   = pct.toFixed(1) + '%';
+  document.getElementById('r-of-txt').textContent = `of ${capMbps.toLocaleString('en-US')} Mbps`;
+  document.getElementById('r-used-lbl').textContent = fmtN(totalMbps) + ' Mbps used';
+  document.getElementById('r-lim-txt').textContent  = linkMode==='DL' ? '20 Gbps limit' : '10 Gbps limit';
+  document.getElementById('r-mode-pill').textContent = linkMode==='DL' ? '★ Dual-Link · 20G' : 'Single-Link · 10G';
+
+  const badge = document.getElementById('r-badge');
+  const pctEl = document.getElementById('r-pct');
+  const rem   = document.getElementById('r-remain');
+  rem.textContent = fmtN(remainMbps) + ' Mbps';
+  badge.className = 'bw-badge';
+  if (pct > 100)     { badge.classList.add('b-over');badge.textContent='OVER CAPACITY';pctEl.style.color='var(--red)';rem.style.color='var(--red)';}
+  else if (pct > 90) { badge.classList.add('b-hi');  badge.textContent='NEAR LIMIT';   pctEl.style.color='var(--orange)';rem.style.color='var(--orange)';}
+  else if (pct > 80) { badge.classList.add('b-warn');badge.textContent='HIGH USAGE';   pctEl.style.color='var(--yellow)';rem.style.color='var(--yellow)';}
+  else               { badge.classList.add('b-ok');  badge.textContent='WITHIN LIMIT'; pctEl.style.color='var(--green)';rem.style.color='var(--green)';}
+
+  // ── Bars ──
+  makeSegs(document.getElementById('r-bar'), streams, cap);
+  const linkAStreams = {
+    S0:Math.min(streams.S0,LINK_10G), SYNC:streams.SYNC, TS:streams.TS, MATCH:streams.MATCH,
+    AUX:streams.AUX,HDMIA:streams.HDMIA,SI2S:streams.SI2S,
+    QI2S:streams.QI2S,RS232:streams.RS232,IR:streams.IR,CTRL:streams.CTRL,
+  };
+  makeSegs(document.getElementById('dl-bar-a'), linkAStreams, LINK_10G);
+  makeSegs(document.getElementById('dl-bar-b'), {S0:Math.max(0,streams.S0-LINK_10G),S1:streams.S1}, LINK_10G);
+  document.getElementById('dl-a-bw').textContent = `${(linkA_bps/1e6).toFixed(1)} / 10,000 Mbps (${linkA_pct.toFixed(1)}%)`;
+  document.getElementById('dl-b-bw').textContent = `${(linkB_bps/1e6).toFixed(1)} / 10,000 Mbps (${linkB_pct.toFixed(1)}%)`;
+  document.getElementById('r-pct-dl').textContent = `Combined ${pct.toFixed(1)}% of 20 Gbps`;
+
+  // ── Legend ──
+  document.getElementById('r-legend').innerHTML = STREAM_META
+    .filter(m=>(streams[m.id]||0)>0)
+    .map(m=>`<div class="leg-item"><div class="leg-dot" style="background:${COLORS[m.id]}"></div><span class="leg-txt">${m.label}</span></div>`)
+    .join('');
+
+  // ── Stream table ──
+  const s0OvB = s0Group > LINK_10G;
+  const streamLink = {
+    S0:s0OvB?'A+B':'A',SYNC:'A',TS:'A',MATCH:'A',
+    S1:s0OvB?'B':'B',
+    AUX:'A',HDMIA:'A',SI2S:'A',QI2S:'A',RS232:'A',IR:'A',CTRL:'A',
+  };
+  const rows = document.getElementById('r-rows');
+  rows.innerHTML = '';
+  STREAM_META.forEach(meta => {
+    const bps = streams[meta.id]||0;
+    const on  = bps > 0;
+    const pct2= totalBPS>0 ? bps/totalBPS*100 : 0;
+    const lnk = linkMode==='DL' ? streamLink[meta.id] : '—';
+    const div = document.createElement('div');
+    div.className = 'stbl-row'+(on?'':' off');
+    div.innerHTML = `
+      <div class="sdot" style="background:${COLORS[meta.id]};${!on?'opacity:.3':''}"></div>
+      <div><div class="sname">${meta.label}</div><div class="sdet">${meta.det}</div></div>
+      <div class="sbw">${on?fmtN(bps/1e6):'—'}<span class="sbw-u"> Mbps</span></div>
+      <div class="slnk">${linkMode==='DL'&&on?`<span class="cp ${lnk.includes('B')?'cp-dl':'cp-sl'}">${lnk}</span>`:'<span style="color:var(--text-dim)">—</span>'}</div>
+      <div class="smini"><div class="smini-bg"><div class="smini-fill" style="width:${pct2.toFixed(1)}%;background:${COLORS[meta.id]}"></div></div></div>
+    `;
+    rows.appendChild(div);
+  });
+
+  // ── Metrics ──
+  document.getElementById('e-pclk').textContent = (pixClock/1e6).toFixed(2);
+  document.getElementById('e-tmds').textContent = (txTMDS/1e6).toFixed(2);
+  document.getElementById('e-util').textContent = pct.toFixed(1);
+  document.getElementById('e-mode').textContent = linkMode==='DL' ? 'Dual-Link' : 'Single-Link';
+
+  // ── Video section subtitles ──
+  const sampName = samp>=1?'YUV 4:4:4':samp>=0.67?'YUV 4:2:2':'YUV 4:2:0';
+  document.getElementById('vid-sub').textContent = `${hAct}×${vAct} @ ${fps} Hz · ${sampName} · ${cdepth}bpp`;
+  const compLabel = linkMode==='DL' ? 'Uncompressed (DL)' : comp0.mode==='none' ? 'No Compression' : `Light Compression ${comp0.ratio.toFixed(2)}×`;
+  document.getElementById('s0-sub').textContent  = `${fps0} fps · ${compLabel}`;
+  document.getElementById('s1-sub').textContent  = `${hA1}×${vA1} · RGB 24bpp`;
+
+  // Compression chip
+  const chip = document.getElementById('s0-comp');
+  if (linkMode==='DL') {
+    chip.innerHTML = `<span class="status-chip sc-dl">★ Dual-Link — Fully Uncompressed · Payload 1440 B</span>`;
+  } else if (comp0.mode==='none') {
+    chip.innerHTML = `<span class="status-chip sc-ok">✓ No Compression · Payload 1440 B</span>`;
+  } else {
+    chip.innerHTML = `<span class="status-chip sc-warn">⚡ Light Compression · ${comp0.mode} · Ratio ${comp0.ratio.toFixed(2)} · Payload ${comp0.payload} B</span>`;
+  }
+
+  // S1 info chips
+  document.getElementById('s1-info').innerHTML = `
+    <span class="status-chip sc-info">H Scale: ${(hA1/hAct).toFixed(2)}×</span>
+    <span class="status-chip sc-info">V Scale: ${scalerV1.toFixed(2)}×</span>
+    <span class="status-chip sc-info">Eff FPS: ${fps1}</span>
+  `;
+
+  // Pixel clock chips
+  document.getElementById('vid-chips').innerHTML = `
+    <span class="status-chip sc-info">Pixel Clock: ${(pixClock/1e6).toFixed(2)} MHz</span>
+    <span class="status-chip sc-info">TMDS Tx: ${(txTMDS/1e6).toFixed(2)} MHz</span>
+  `;
+}
+
+// ── Bar segment builder ──
+function makeSegs(container, streams, cap) {
+  container.innerHTML = '';
+  Object.entries(streams).forEach(([id,bps]) => {
+    if (bps<=0) return;
+    const pct = Math.min(bps/cap*100, 100);
+    const seg = document.createElement('div');
+    seg.className = 'cap-seg';
+    seg.style.width = pct.toFixed(2)+'%';
+    seg.style.background = COLORS[id]||'#64748b';
+    seg.title = (STREAM_META.find(m=>m.id===id)?.label||id)+': '+(bps/1e6).toFixed(2)+' Mbps';
+    container.appendChild(seg);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+// Sync theme button icon
+(function(){
+  const cur = document.documentElement.getAttribute('data-theme')||'dark';
+  document.getElementById('theme-btn').textContent = cur==='dark'?'🌙':'☀️';
+})();
+
+// Load default preset
+applyPreset('4kdci60_444');
+</script>
+</body>
+</html>
